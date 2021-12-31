@@ -5,7 +5,7 @@
 class OAuthModel {
 
     constructor() {
-        this.clients = [{ client_id: "client1", client_secret: "secret", redirect_uris: ["http://localhost:8080/callback"], grants: ["authorization_code"] }];
+        this.clients = [{ id: "client1", client_secret: "secret", redirect_uris: ["http://localhost:8080/callback"], grants: ["authorization_code"] }];
         this.authorizationCodes = [];
         this.accessTokens = [];
         this.refreshTokens = [];
@@ -28,7 +28,7 @@ class OAuthModel {
      * @param {String} accessToken The access token to retrieve
      * @returns Promise that resolves to an {@link Object} representing the access token and associated data
      */
-    getAccessToken(accessToken) {
+    async getAccessToken(accessToken) {
         return new Promise((resolve, reject) => {
             if (!accessToken)
                 return reject("Parameters must not be null");
@@ -57,7 +57,7 @@ class OAuthModel {
      * @param {String} refreshToken The access token to retrieve
      * @returns Promise that resolves to an {@link Object} representing the refresh token and associated data
      */
-    getRefreshToken(refreshToken) {
+    async getRefreshToken(refreshToken) {
         return new Promise((resolve, reject) => {
             if (!refreshToken)
                 return reject("Parameters must not be null");
@@ -86,7 +86,7 @@ class OAuthModel {
      * @param {String} authorizationCode The authorization code to retrieve
      * @returns Promise that resolves to an {@link Object} representing the authorization code and associated data
      */
-    getAuthorizationCode(authorizationCode) {
+    async getAuthorizationCode(authorizationCode) {
         return new Promise((resolve, reject) => {
             if (!authorizationCode)
                 return reject("Parameters must not be null");
@@ -117,15 +117,15 @@ class OAuthModel {
      * @param {String} clientSecret The client secret of the client to retrieve. Can be null
      * @returns Promise that resolves to an {@link Object} representing the client and associated data, or a falsy value if no such client could be found
      */
-    getClient(clientId, clientSecret) {
+    async getClient(clientId, clientSecret) {
         return new Promise((resolve, reject) => {
             if (!clientId)
                 return reject("Parameters must not be null");
             let foundClient;
             if (clientSecret)
-                foundClient = this.clients.find((c) => c.client_id === clientId && c.client_secret === clientSecret);
+                foundClient = this.clients.find((c) => c.id === clientId && c.client_secret === clientSecret);
             else
-                foundClient = this.clients.find((c) => c.client_id === clientId);
+                foundClient = this.clients.find((c) => c.id === clientId);
             if (!foundClient)
                 return reject("Client not found");
             return resolve({
@@ -137,13 +137,29 @@ class OAuthModel {
     }
 
     /**
+     * Invoked to retrieve a user using a username
+     * @param {String} username The username of the user to retrieve
+     * @returns Promise that resolves to an {@link Object} representing the user, or a falsy value if no such user could be found
+     */
+    async getUserByUsername(username) {
+        return new Promise((resolve, reject) => {
+            if (!username)
+                return reject("Parameters must not be null");
+            const foundUser = this.users.find((u) => u.username === username);
+            if (!foundUser)
+                return reject("User not found");
+            return resolve(foundUser);
+        });
+    }
+
+    /**
      * Invoked to retrieve a user using a username/password combination
      * @see https://oauth2-server.readthedocs.io/en/latest/model/spec.html#getuser-username-password-callback
      * @param {String} username The username of the user to retrieve
      * @param {String} password The user’s password
      * @returns Promise that resolves to an {@link Object} representing the user, or a falsy value if no such user could be found. The user object is completely transparent to oauth2-server and is simply used as input to other model functions
      */
-    getUser(username, password) {
+    async getUser(username, password) {
         return new Promise((resolve, reject) => {
             if (!username || !password)
                 return reject("Parameters must not be null");
@@ -159,7 +175,7 @@ class OAuthModel {
      * @param {Object} client The client to retrieve the associated user for
      * @returns Promise that resolves to an {@link Object} representing the user, or a falsy value if the client does not have an associated user. The user object is completely transparent to oauth2-server and is simply used as input to other model functions.
      */
-    getUserFromClient(client) {
+    async getUserFromClient(client) {
         return new Promise((resolve, reject) => {
             if (!client)
                 return reject("Parameters must not be null");
@@ -178,7 +194,7 @@ class OAuthModel {
      * @param {Object} user The user associated with the authorization code
      * @returns Promise that resolves to an {@link Object} representing the authorization code and associated data
      */
-    saveAuthorizationCode(code, client, user) {
+    async saveAuthorizationCode(code, client, user) {
         return new Promise((resolve, reject) => {
             if (!code || !client || !user)
                 return reject("Parameters must not be null");
@@ -210,7 +226,7 @@ class OAuthModel {
      * @param {Object} user The user associated with the token(s)
      * @returns Promise that resolves to an {@link Object} representing the token(s) and associated data
      */
-    saveToken(token, client, user) {
+    async saveToken(token, client, user) {
         return new Promise((resolve, reject) => {
             if (!token || !client || !user)
                 return reject("Parameters must not be null");
@@ -248,7 +264,7 @@ class OAuthModel {
      * @param {Object} refreshToken The token to be revoked
      * @returns Promise that resolves to true if the revocation was successful or false if the refresh token could not be found
      */
-    revokeToken(refreshToken) {
+    async revokeToken(refreshToken) {
         return new Promise((resolve, reject) => {
             const foundIndex = this.refreshTokens.indexOf(refreshToken);
             if (foundIndex === -1)
@@ -264,7 +280,7 @@ class OAuthModel {
      * @param {Object} authorizationCode The code to be revoked
      * @returns Promise that resolves to true if the revocation was successful or false if the authorization code could not be found
      */
-    revokeAuthorizationCode(authorizationCode) {
+    async revokeAuthorizationCode(authorizationCode) {
         return new Promise((resolve, reject) => {
             const foundIndex = this.authorizationCodes.indexOf(authorizationCode);
             if (foundIndex === -1)
@@ -282,9 +298,9 @@ class OAuthModel {
      * @param {String} scope The scopes to validate
      * @returns Promise that resolves to validated scopes to be used or a falsy value to reject the requested scopes
      */
-    validateScope(user, client, scope) {
+    async validateScope(user, client, scope) {
         return new Promise((resolve, reject) => {
-            const foundClient = this.clients.find((c) => c.id === client.client_id);
+            const foundClient = this.clients.find((c) => c.id === client.id);
             if (!foundClient)
                 return reject("Client not found");
             const foundUser = this.users.find((u) => u.id === user.id);
@@ -292,7 +308,7 @@ class OAuthModel {
                 return reject("User not found");
             if (!scope.split(' ').every(s => this.VALID_SCOPES.indexOf(s) >= 0))
                 return reject("Scopes are not valid");
-            return resolve(true);
+            return resolve(scope);
         });
     }
 
@@ -303,7 +319,7 @@ class OAuthModel {
      * @param {String} scope The required scopes
      * @returns Promise that resolved to true if the access token passes, false otherwise
      */
-    verifyScope(accessToken, scope) {
+    async verifyScope(accessToken, scope) {
         return new Promise((resolve, reject) => {
             if (!accessToken.scope)
                 return reject("Token does not specify scope");
